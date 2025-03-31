@@ -78,6 +78,19 @@ impl<'a, ConstraintF: Field + PrimeField> ConstraintSynthesizer<ConstraintF>
 
                 let out_val = left_val * right_val;
                 let out_var = FpVar::<ConstraintF>::new_witness(cs.clone(), || Ok(out_val))?;
+
+                // enforce the multiplication constraint
+                {
+                    let left = (ConstraintF::one(), variables[mul_term.1.as_usize()]);
+                    let right = (ConstraintF::one(), variables[mul_term.2.as_usize()]);
+                    if let FpVar::Var(allocated) = &out_var {
+                        let prod = (ConstraintF::one(), allocated.variable);
+                        cs.enforce_constraint(lc!() + left, lc!() + right, lc!() + prod)?;
+                    } else {
+                        panic!("Expected out_var to be of type FpVar::Var");
+                    }
+                }
+
                 // out var can't be a type different from FpVar::Var
                 if let FpVar::Var(allocated) = out_var {
                     arith_gate += (coeff, allocated.variable);
